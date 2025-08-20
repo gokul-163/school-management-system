@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie'; // optional, for checking auth token
+import Cookies from 'js-cookie';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('admin@example.com');
@@ -15,8 +15,10 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    const token = Cookies.get('token'); // or check via localStorage
-    if (token) router.push('/dashboard');
+    const token = Cookies.get('token');
+    if (token) {
+      router.push('/dashboard');
+    }
   }, [router]);
 
   const submit = async (e: React.FormEvent) => {
@@ -26,17 +28,56 @@ export default function LoginPage() {
 
     try {
       if (mode === 'register') {
-        await api.post('/api/auth/register-admin', {
+        const response = await api.post('/api/auth/register-admin', {
           name: 'Admin',
           email,
           password,
         });
+        
+        if (response.status === 201) {
+          setMode('login');
+          setError('Admin registered successfully! Please login.');
+          setLoading(false);
+          return;
+        }
       } else {
-        await api.post('/api/auth/login', { email, password });
+        const response = await api.post('/api/auth/login', { email, password });
+        
+        if (response.data && response.data.token) {
+          // Store token in cookie
+          Cookies.set('token', response.data.token, { 
+            expires: 1, // 1 day
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+          });
+          
+          // Store user info if needed
+          if (response.data.user) {
+            Cookies.set('user', JSON.stringify(response.data.user), { 
+              expires: 1,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'strict'
+            });
+          }
+          
+          router.push('/dashboard');
+          return;
+        }
       }
-      router.push('/dashboard');
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Something went wrong');
+      console.error('Login error:', err);
+      
+      if (err.response) {
+        // Server responded with error
+        const errorMessage = err.response.data?.message || err.response.data?.error || 'Server error occurred';
+        setError(errorMessage);
+      } else if (err.request) {
+        // Network error
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        // Other error
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -71,11 +112,19 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && (
+            <div className={`text-sm p-3 rounded-lg ${
+              error.includes('successfully') 
+                ? 'text-green-700 bg-green-100' 
+                : 'text-red-600 bg-red-100'
+            }`}>
+              {error}
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white rounded-xl py-2 disabled:opacity-50"
+            className="w-full bg-blue-600 text-white rounded-xl py-2 disabled:opacity-50 hover:bg-blue-700 transition-colors"
           >
             {loading
               ? 'Please wait...'
@@ -88,10 +137,11 @@ export default function LoginPage() {
         <div className="text-sm mt-4 text-center">
           <button
             type="button"
-            className="underline text-blue-600"
-            onClick={() =>
-              setMode(mode === 'register' ? 'login' : 'register')
-            }
+            className="underline text-blue-600 hover:text-blue-800"
+            onClick={() => {
+              setMode(mode === 'register' ? 'login' : 'register');
+              setError(null);
+            }}
           >
             Switch to {mode === 'register' ? 'Login' : 'Register Admin'}
           </button>

@@ -4,35 +4,29 @@ import Layout from '@/components/Layout';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
-type Student = { 
+type Class = { 
   _id: string; 
-  rollNo: string; 
   name: string; 
-  email: string; 
-  classId?: string;
-  parentName?: string;
-  parentContact?: string;
-  address?: string;
+  section: string; 
+  capacity: number;
+  teacherId?: string;
   createdAt: string;
 };
 
-export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+export default function ClassesPage() {
+  const [classes, setClasses] = useState<Class[]>([]);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [rollNo, setRollNo] = useState('');
-  const [parentName, setParentName] = useState('');
-  const [parentContact, setParentContact] = useState('');
-  const [address, setAddress] = useState('');
+  const [section, setSection] = useState('');
+  const [capacity, setCapacity] = useState('');
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = async () => {
     try {
-      const { data } = await api.get('/students');
-      setStudents(data.data || []);
+      const { data } = await api.get('/classes');
+      setClasses(data.data || []);
     } catch (error) {
-      console.error('Error loading students:', error);
+      console.error('Error loading classes:', error);
     }
   };
 
@@ -44,23 +38,17 @@ export default function StudentsPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/students', { 
-        rollNo, 
+      await api.post('/classes', { 
         name, 
-        email, 
-        parentName, 
-        parentContact, 
-        address 
+        section, 
+        capacity: parseInt(capacity) 
       });
-      setRollNo(''); 
       setName(''); 
-      setEmail('');
-      setParentName('');
-      setParentContact('');
-      setAddress('');
+      setSection(''); 
+      setCapacity('');
       await load();
     } catch (error) {
-      console.error('Error creating student:', error);
+      console.error('Error creating class:', error);
     } finally {
       setLoading(false);
     }
@@ -72,113 +60,84 @@ export default function StudentsPage() {
     
     setLoading(true);
     try {
-      await api.put(`/students/${editingId}`, { 
-        rollNo, 
+      await api.put(`/classes/${editingId}`, { 
         name, 
-        email, 
-        parentName, 
-        parentContact, 
-        address 
+        section, 
+        capacity: parseInt(capacity) 
       });
-      setRollNo(''); 
       setName(''); 
-      setEmail('');
-      setParentName('');
-      setParentContact('');
-      setAddress('');
+      setSection(''); 
+      setCapacity('');
       setEditingId(null);
       await load();
     } catch (error) {
-      console.error('Error updating student:', error);
+      console.error('Error updating class:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteStudent = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this student?')) return;
+  const deleteClass = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this class?')) return;
     
     try {
-      await api.delete(`/students/${id}`);
+      await api.delete(`/classes/${id}`);
       await load();
     } catch (error) {
-      console.error('Error deleting student:', error);
+      console.error('Error deleting class:', error);
     }
   };
 
-  const startEdit = (student: Student) => {
-    setEditingId(student._id);
-    setRollNo(student.rollNo);
-    setName(student.name);
-    setEmail(student.email);
-    setParentName(student.parentName || '');
-    setParentContact(student.parentContact || '');
-    setAddress(student.address || '');
+  const startEdit = (classItem: Class) => {
+    setEditingId(classItem._id);
+    setName(classItem.name);
+    setSection(classItem.section);
+    setCapacity(classItem.capacity.toString());
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setRollNo('');
     setName('');
-    setEmail('');
-    setParentName('');
-    setParentContact('');
-    setAddress('');
+    setSection('');
+    setCapacity('');
   };
 
   return (
     <Protected>
       <Layout>
-        <div className="p-6 max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6 text-gray-800">Students Management</h1>
+        <div className="p-6 max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6 text-gray-800">Classes Management</h1>
 
           {/* Form */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">
-              {editingId ? 'Edit Student' : 'Add New Student'}
+              {editingId ? 'Edit Class' : 'Add New Class'}
             </h2>
             
             <form onSubmit={editingId ? update : create} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input 
-                  placeholder="Roll Number" 
-                  value={rollNo} 
-                  onChange={e => setRollNo(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <input 
-                  placeholder="Full Name" 
+                  placeholder="Class Name (e.g., 10th)" 
                   value={name} 
                   onChange={e => setName(e.target.value)}
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
                 <input 
-                  placeholder="Email" 
-                  type="email"
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Section (e.g., A, B, C)" 
+                  value={section} 
+                  onChange={e => setSection(e.target.value)}
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
                 <input 
-                  placeholder="Parent Name" 
-                  value={parentName} 
-                  onChange={e => setParentName(e.target.value)}
+                  placeholder="Capacity" 
+                  type="number"
+                  value={capacity} 
+                  onChange={e => setCapacity(e.target.value)}
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input 
-                  placeholder="Parent Contact" 
-                  value={parentContact} 
-                  onChange={e => setParentContact(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input 
-                  placeholder="Address" 
-                  value={address} 
-                  onChange={e => setAddress(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  min="1"
                 />
               </div>
               
@@ -188,7 +147,7 @@ export default function StudentsPage() {
                   disabled={loading} 
                   className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
                 >
-                  {loading ? 'Saving...' : (editingId ? 'Update' : 'Add Student')}
+                  {loading ? 'Saving...' : (editingId ? 'Update' : 'Add Class')}
                 </button>
                 {editingId && (
                   <button 
@@ -203,10 +162,10 @@ export default function StudentsPage() {
             </form>
           </div>
 
-          {/* Students Table */}
+          {/* Classes Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">All Students</h2>
+              <h2 className="text-xl font-semibold text-gray-800">All Classes</h2>
             </div>
             
             <div className="overflow-x-auto">
@@ -217,22 +176,16 @@ export default function StudentsPage() {
                       #
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Roll No
+                      Class Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
+                      Section
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
+                      Capacity
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Parent Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Parent Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Joined
+                      Created
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -240,39 +193,35 @@ export default function StudentsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {students.map((student, i) => (
-                    <tr key={student._id} className="hover:bg-gray-50">
+                  {classes.map((classItem, i) => (
+                    <tr key={classItem._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {i + 1}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {student.rollNo}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.name}
+                        {classItem.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.email}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {classItem.section}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.parentName || '-'}
+                        {classItem.capacity} students
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.parentContact || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(student.createdAt).toLocaleDateString()}
+                        {new Date(classItem.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => startEdit(student)}
+                            onClick={() => startEdit(classItem)}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => deleteStudent(student._id)}
+                            onClick={() => deleteClass(classItem._id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Delete
@@ -285,9 +234,9 @@ export default function StudentsPage() {
               </table>
             </div>
             
-            {students.length === 0 && (
+            {classes.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                No students found. Add your first student above.
+                No classes found. Add your first class above.
               </div>
             )}
           </div>
